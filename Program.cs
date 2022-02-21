@@ -15,7 +15,7 @@ namespace BSP
             List<int> vertexs;
             vertexs = new List<int> { 0, 0, 0, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 0, 0, 0 };
             vertexs = new List<int> {0, 0, 0, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 0, 0, 0, 3, 2, 3, 4, 3, 4, 4, 4, 4, 4, 4, 2, 4, 2, 3, 2};
-            vertexs = new List<int> { 0, 0, 0, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 0, 0, 0, 2, 4, 2, 5, 3, 5, 3, 4 };
+            vertexs = new List<int> { 0, 0, 0, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 0, 0, 0, 2, 4, 2, 5, 3, 5, 3, 4, 3, 4, 2, 4 };
 
             List<Edge> edges = new List<Edge>();
             for (int i = 0; i < vertexs.Count / 4; i++)
@@ -27,23 +27,6 @@ namespace BSP
             Node root = new Node(edges);
             scene.BuildTree(ref root, edges);
             scene.GetTree(root);
-            // Вывод граней
-            /*
-            for (int i = 0; i < edges.Count; i++)
-            {
-                Console.WriteLine($"LEFT: ({edges[i].Left.x}, {edges[i].Left.y}), RIGHT: ({edges[i].Right.x}, {edges[i].Right.y})");
-            }
-            */
-
-            /*
-            Rectangle R = new Rectangle(list);
-
-            Console.WriteLine($"Длина {R.Width}, высота {R.Height}");
-            for (int i = 0; i < R.Edges.Count; i++)
-            {
-                Console.WriteLine($"Отрезок с точками ({R.Edges[i].Left.x}, {R.Edges[i].Left.y}), ({R.Edges[i].Right.x}, {R.Edges[i].Right.y}) ");
-            }
-            */
         }
 
     }
@@ -64,10 +47,8 @@ namespace BSP
                 if (node.RightNode != null)
                 {
                     GetTree(node.RightNode, indent);
-                    // Console.WriteLine($"Правое поддерево, rectangle : ({node.Space.xl}, {node.Space.yl}), ({node.Space.xr}, {node.Space.yr})");
                 }
             }
-            //Console.WriteLine($"Корень, rectangle : ({node.Space.xl}, {node.Space.yl}), ({node.Space.xr}, {node.Space.yr})");
         }
 
         /// <summary>
@@ -120,32 +101,14 @@ namespace BSP
                         break;
                 }
             }
-            // Console.WriteLine($"Segment: ({node.Segment.Left.x}, {node.Segment.Left.y}) ({node.Segment.Right.x}, {node.Segment.Right.y})");
-            // Console.WriteLine($"Space: ({node.Space.xl}, {node.Space.yl}) ({node.Space.xr}, {node.Space.yr})");
             if (left != null)
             {
-                /*
-                foreach(Edge edge in left)
-                {
-                    Console.WriteLine($"left: ({edge.Left.x}, {edge.Left.y}) ({edge.Right.x}, {edge.Right.y})");
-                }
-                Console.WriteLine("");
-                */
-
                 Node newNode = new Node(left);
                 node.LeftNode = newNode;
                 BuildTree(ref newNode, left);
             }
             if (right != null)
             {
-                /*
-                foreach (Edge edge in right)
-                {
-                    Console.WriteLine($"right: ({edge.Left.x}, {edge.Left.y}) ({edge.Right.x}, {edge.Right.y})");
-                }
-                Console.WriteLine("");
-                */
-
                 Node newNode = new Node(right);
                 node.RightNode = newNode;
                 BuildTree(ref newNode, right);
