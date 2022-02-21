@@ -12,8 +12,11 @@ namespace BSP
     {
         static void Main(string[] args)
         {
-            List<int> vertexs = new List<int> {0, 0, 0, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 0, 0, 0, 3, 2, 3, 4, 3, 4, 4, 4, 4, 4, 4, 2, 4, 2, 3, 2};
-            // List<int> vertexs = new List<int> { 0, 0, 0, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 0, 0, 0 };
+            List<int> vertexs;
+            vertexs = new List<int> { 0, 0, 0, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 0, 0, 0 };
+            vertexs = new List<int> {0, 0, 0, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 0, 0, 0, 3, 2, 3, 4, 3, 4, 4, 4, 4, 4, 4, 2, 4, 2, 3, 2};
+            vertexs = new List<int> { 0, 0, 0, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 0, 0, 0, 2, 4, 2, 5, 3, 5, 3, 4 };
+
             List<Edge> edges = new List<Edge>();
             for (int i = 0; i < vertexs.Count / 4; i++)
             {
@@ -21,9 +24,9 @@ namespace BSP
             }
 
             Scene scene = new Scene();
-            Node root = new Node();
-            scene.BuildTree(root, edges);
-
+            Node root = new Node(edges);
+            scene.BuildTree(ref root, edges);
+            scene.GetTree(root);
             // Вывод граней
             /*
             for (int i = 0; i < edges.Count; i++)
@@ -48,61 +51,56 @@ namespace BSP
     class Scene
     {
         public Node Root { get; set; }
-        public void GetTree(Node node)
+        public void GetTree(Node node, string indent = "")
         {
             if (node != null)
             {
+                indent += new string(' ', 3);
                 if (node.LeftNode != null)
                 {
-                    GetTree(node.LeftNode);
-                    Console.WriteLine($"Левое поддерево, координаты : ({node.Space.xl}, {node.Space.yl}), ({node.Space.xr}, {node.Space.yr})");
+                    GetTree(node.LeftNode, indent);
                 }
+                Console.WriteLine(indent + node.Space.GetShowString());
                 if (node.RightNode != null)
                 {
-                    GetTree(node.RightNode);
-                    Console.WriteLine($"Правое поддерево, координаты : ({node.Space.xl}, {node.Space.yl}), ({node.Space.xr}, {node.Space.yr})");
+                    GetTree(node.RightNode, indent);
+                    // Console.WriteLine($"Правое поддерево, rectangle : ({node.Space.xl}, {node.Space.yl}), ({node.Space.xr}, {node.Space.yr})");
                 }
             }
+            //Console.WriteLine($"Корень, rectangle : ({node.Space.xl}, {node.Space.yl}), ({node.Space.xr}, {node.Space.yr})");
         }
-        public void BuildTree (Node node, List<Edge> edges)
+
+        /// <summary>
+        /// Rectangle создается для каждой Node сразу после создания
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="edges"></param>
+        public void BuildTree (ref Node node, List<Edge> edges)
         {
-            if (edges == null)  // Точка выхода
+            if (edges == null || edges.Count <= 4)  // Точка выхода
             {
                 return;
-            }
-            List<Edge> edgesToSpace = new List<Edge>(); // Массив граней образующих Space
-            //edges.CopyTo(0, edgesToSpace.ToArray(), 0, 4);
-            for (int i = 0; i < 4; i++)
-            {
-                Edge edge = edges[i].Copy();
-                edgesToSpace.Add(edge);
-            }
+            } 
 
-
-            List<Edge> edgesToEnd = new List<Edge>();   // Массив оставшихся граней
-            //edges.CopyTo(4, edgesToEnd.ToArray(), 0, edges.Count);
-            for (int i = 4; i < edges.Count; i++)
-            {
-                Edge edge = edges[i].Copy();
-                edgesToEnd.Add(edge);
-            }
-
-            node.AddRectangle(edgesToSpace); //
-            node.Edges = edgesToEnd; // Возможно переделать и сделать метод, который полностью копирует?
-            node.FindSegment();
+            
             if (this.Root == null)
             {
                 this.Root = node;
             }
 
+            node.Edges = edges; // Возможно переделать и сделать метод, который полностью копирует? // Теперь добавляется полный список граней. Избыток инфы?
+            node.FindSegment();
+
             List<Edge> left = new List<Edge>();
             List<Edge> right = new List<Edge>();
+            left.Add(node.Segment);
+            right.Add(node.Segment);
 
-            foreach(Edge edge in edgesToEnd)
+            foreach (Edge edge in edges)
             {
                 int result = node.ClassifyEdge(edge);
 
-                switch(result)
+                switch (result)
                 {
                     case 0:
                         // Что делаем?
@@ -114,26 +112,43 @@ namespace BSP
                         right.Add(edge);
                         break;
                     case 3:
-                        Edge leftEdge = new Edge();
-                        Edge rightEdge = new Edge();
+                        Edge leftEdge = edge.Copy();
+                        Edge rightEdge = edge.Copy();
                         edge.SplitEdge(node.Segment, node.Horizontal, ref leftEdge, ref rightEdge);
                         left.Add(leftEdge);
                         right.Add(rightEdge);
                         break;
                 }
             }
+            // Console.WriteLine($"Segment: ({node.Segment.Left.x}, {node.Segment.Left.y}) ({node.Segment.Right.x}, {node.Segment.Right.y})");
+            // Console.WriteLine($"Space: ({node.Space.xl}, {node.Space.yl}) ({node.Space.xr}, {node.Space.yr})");
+            if (left != null)
+            {
+                /*
+                foreach(Edge edge in left)
+                {
+                    Console.WriteLine($"left: ({edge.Left.x}, {edge.Left.y}) ({edge.Right.x}, {edge.Right.y})");
+                }
+                Console.WriteLine("");
+                */
 
-            if(left != null)
-            {
-                Node newNode = new Node();
+                Node newNode = new Node(left);
                 node.LeftNode = newNode;
-                BuildTree(newNode, left);
+                BuildTree(ref newNode, left);
             }
-            if(right != null)
+            if (right != null)
             {
-                Node newNode = new Node();
+                /*
+                foreach (Edge edge in right)
+                {
+                    Console.WriteLine($"right: ({edge.Left.x}, {edge.Left.y}) ({edge.Right.x}, {edge.Right.y})");
+                }
+                Console.WriteLine("");
+                */
+
+                Node newNode = new Node(right);
                 node.RightNode = newNode;
-                BuildTree(newNode, right);
+                BuildTree(ref newNode, right);
             }
         }
     }
@@ -148,22 +163,36 @@ namespace BSP
 
         public bool Horizontal = false;
 
+        public Node() { }
+
+        /// <summary>
+        /// Перегрузка оператора инициализации с произвольным числом Edges граней (кратное 4). Минимальное количество граней 4.
+        /// </summary>
+        /// <returns>
+        /// Создается объект Node содержащие Rectangle с первыми 4 гранями массива Edges
+        /// </returns>
+        public Node(List<Edge> edges)
+        {
+            this.AddRectangle(edges);
+        }
+
         public void AddRectangle(List<Edge> edges)
         {
             // Создание Rectangle
-            Space = new Rectangle(edges);
+            List<Edge> tempEdge = SplitListEdges(edges);
+            Space = new Rectangle(tempEdge);
         }
 
         public void FindSegment()
         {
             if (Edges != null && Space != null)
             {
-                Edge seg = Edges[0];
+                Edge seg = Edges[4];
 
                 if (seg.Left.x == seg.Right.x)
                 {
                     // Vertical
-                    this.Segment = seg.CreateHorizontalEdge(seg.Left.x, Space.yl, Space.yr);
+                    this.Segment = seg.CreateVerticalEdge(seg.Left.x, Space.yl, Space.yr);
                 }
                 else if (seg.Left.y == seg.Right.y)
                 {
@@ -191,34 +220,30 @@ namespace BSP
             {
                 if(Horizontal)
                 {
-                    bool top1 = edge.Left.y > Segment.Left.y; // Первая точка выше
-                    bool top2 = edge.Right.y > Segment.Left.y; // Вторая точка выше
-                    if (!top1 && !top2)
+                    if (edge.Left.y < Segment.Left.y && edge.Right.y <= Segment.Left.y)
                     {
                         result = 1;
                     }
-                    else if(top1 && top2)
+                    else if(edge.Left.y >= Segment.Left.y && edge.Right.y > Segment.Left.y)
                     {
                         result = 2;
                     }
-                    else if((top1 && !top2) || (!top1 && top2))
+                    else if((edge.Left.y > Segment.Left.y && edge.Right.y < Segment.Left.y) || (edge.Left.y < Segment.Left.y && edge.Right.y > Segment.Left.y))
                     {
                         result = 3;
                     }
                 }
                 else
                 {
-                    bool right1 = edge.Left.x > Segment.Left.x; // Первая точка выше
-                    bool right2 = edge.Right.x > Segment.Left.x; // Вторая точка выше
-                    if (!right1 && !right2)
+                    if (edge.Left.x < Segment.Left.x && edge.Right.x <= Segment.Left.x)
                     {
                         result = 1;
                     }
-                    else if (right1 && right2)
+                    else if (edge.Left.x >= Segment.Left.x && edge.Right.x > Segment.Left.x)
                     {
                         result = 2;
                     }
-                    else if ((right1 && !right2) || (!right1 && right2))
+                    else if ((edge.Left.x > Segment.Left.x && edge.Right.x < Segment.Left.x) || (edge.Left.x < Segment.Left.x && edge.Right.x > Segment.Left.x))
                     {
                         result = 3;
                     }
@@ -227,6 +252,21 @@ namespace BSP
             return result;
         }
 
+        /// <summary>
+        /// Отделяет первые 4 Edge для создания Rectangle из общего списка
+        /// </summary>
+        /// <param name="edges">Произвольное количество граней Edge. Количество должно быть >= 4</param>
+        /// <returns>Возвращает 4 грани для создания Rectangle</returns>
+        public List<Edge> SplitListEdges(List<Edge> edges)
+        {
+            List<Edge> result = new List<Edge>();  // Массив граней образующих Space
+            for (int i = 0; i < 4; i++)
+            {
+                Edge edge = edges[i].Copy();
+                result.Add(edge);
+            }
+            return result;
+        }
     }
 
     class Rectangle
@@ -290,10 +330,26 @@ namespace BSP
             for (int i = 0; i < edges.Count; i++)
             {
                 Edges.Add(edges[i]);
-                if(edges[i].Left.x < xmin) { ymin = edges[i].Left.y; }
-                if (edges[i].Left.x > xmax) { ymax = edges[i].Left.y; }
-                if (edges[i].Right.x < xmin) { ymin = edges[i].Right.y; }
-                if (edges[i].Right.x > xmax) { ymax = edges[i].Right.y; }
+                if(edges[i].Left.x <= xmin) 
+                {
+                    xmin = edges[i].Left.x;
+                    if (edges[i].Left.y < ymin) { ymin = edges[i].Left.y; }
+                }
+                if (edges[i].Left.x >= xmax) 
+                {
+                    xmax = edges[i].Left.x;
+                    if (edges[i].Left.y > ymax) { ymax = edges[i].Left.y; }
+                }
+                if (edges[i].Right.x <= xmin) 
+                {
+                    xmin = edges[i].Right.x;
+                    if (edges[i].Right.y < ymin) { ymin = edges[i].Right.y; }
+                }
+                if (edges[i].Right.x >= xmax) 
+                {
+                    xmax = edges[i].Right.x;
+                    if (edges[i].Right.y > ymax) { ymax = edges[i].Right.y; }
+                }
             }
 
             this.xl = xmin;
@@ -311,6 +367,15 @@ namespace BSP
         public void SetHeight(int y1, int y2)
         {
             this.Height = Math.Abs(y1 - y2);
+        }
+        public void Show()
+        {
+            Console.WriteLine($"Rectangle : ({this.xl}, {this.yl}), ({this.xr}, {this.yr})");
+        }
+
+        public string GetShowString()
+        {
+            return "Rectangle: (" + this.xl + ", " + this.yl +"), (" + this.xr + ", " + this.yr + ")";
         }
     }
 
@@ -332,8 +397,31 @@ namespace BSP
 
         public Edge(int x1, int y1, int x2, int y2)
         {
-            Point left = new Point(x1, y1);
-            Point right = new Point(x2, y2);
+            Point left;
+            Point right;
+            if (x1 < x2)
+            {
+                left = new Point(x1, y1);
+                right = new Point(x2, y2);
+            }
+            else if (x1 > x2)
+            {
+                right = new Point(x1, y1);
+                left = new Point(x2, y2);
+            }
+            else
+            {
+                if (y1 < y2)
+                {
+                    left = new Point(x1, y1);
+                    right = new Point(x2, y2);
+                }
+                else
+                {
+                    right = new Point(x1, y1);
+                    left = new Point(x2, y2);
+                }
+            }
 
             this.Left = left;
             this.Right = right;
